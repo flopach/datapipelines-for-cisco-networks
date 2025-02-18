@@ -99,7 +99,7 @@ def insert_into_database(context: AssetExecutionContext, second_upstream: List):
     Insert the data into the database
     """
     # Connect to SQLite database (or create it if it doesn't exist)
-    conn = sqlite3.connect('db/example.db')
+    conn = sqlite3.connect('example.db')
     cursor = conn.cursor()
 
     # Create a new SQLite table with columns id, name, and age
@@ -128,14 +128,14 @@ defs = Definitions(
     assets=[get_data_from_catalyst_center, clean_data, insert_into_database],
     jobs=[
         define_asset_job(
-            name="hello_dagster_job",
+            name="catc_devicehealth_job",
             selection=AssetSelection.groups("catalyst_center"),
         )
     ],
     schedules=[
         ScheduleDefinition(
-            name="hello_dagster_schedule",
-            job_name="hello_dagster_job",
+            name="catc_catchall_schedule",
+            job_name="catc_devicehealth_job",
             cron_schedule="* * * * *",
         )
     ],

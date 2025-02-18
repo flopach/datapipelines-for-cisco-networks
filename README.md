@@ -2,29 +2,38 @@
 
 Instead of custom Python scripts you can use a stable data engineering Python framework to extract data from your cisco devices.
 
-In this example we use the framework dagster to extract data from **Cisco Catalyst Center** and **SD WAN**.
+In this example we use the [data engineering Python framework dagster](https://dagster.io/) to extract data from **Cisco Catalyst Center** and **SD WAN**.
 
-![](images/dag.png)
+**Example pipeline**:
+
+![](images/dagster.png)
+
+**Desired Output** - data in your relational database:
+
+![](images/db-output.png)
 
 ## First Steps
 
 ### Installation
 
-Git clone and run:
+1. Run in your terminal:
 
 ```
+git clone &&
 dagster dev -f pipeline-catalyst-center.py
 ```
 
-### Company-wide Data Architecture
-
-If your company is already using a data lake house / data warehouse, you can use the existing platform to ingest data.
-
-![](images/data-architecture.png)
+2. Open [http://127.0.0.1:3000/](http://127.0.0.1:3000/) to execute and view logs of your pipeline.
 
 ### Cisco APIs Overview
 
 ![](images/cisco-list.png)
+
+### Company-wide Data Architecture
+
+If your company is already using a data lake house / data warehouse, talk to your data engineer team if you can use the existing platform to ingest data.
+
+![](images/data-architecture.png)
 
 ## Versioning
 
@@ -42,4 +51,4 @@ This project is licensed under the Cisco Sample Code License 1.1. - see the [LIC
 ## Further Links
 
 * [Cisco DevNet Website](https://developer.cisco.com)
-* [MV Sense API](https://developer.cisco.com/meraki/mv-sense/#!overview)
+* [DevNet Sandboxes](https://devnetsandbox.cisco.com)

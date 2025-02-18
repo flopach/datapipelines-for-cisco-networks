@@ -13,11 +13,11 @@ from dagster import Definitions
 from dagster import ScheduleDefinition
 
 # Cisco DNA Center credentials
-DNAC_URL = "https://sandboxdnac.cisco.com"
-DNAC_USER = "devnetuser"
-DNAC_PASS = "Cisco123!"
+SDWAN_URL = "https://sandbox-sdwan-2.cisco.com"
+SDWAN_USER = "devnetuser"
+SDWAN_PASS = "" #insert password here
 
-# Function to obtain a token
+# Class to obtain a token
 class Authentication:
 
     @staticmethod
@@ -50,23 +50,16 @@ class Authentication:
 
 def get_sdwan_token():
     Auth = Authentication()
-    jsessionid = Auth.get_jsessionid("sandbox-sdwan-2.cisco.com",443,"devnetuser","RG!_Yw919_83")
-    token = Auth.get_token("sandbox-sdwan-2.cisco.com",443,jsessionid)
-
-    base_url = "https://sandbox-sdwan-2.cisco.com"
-
-    if token is not None:
-        header = {'Content-Type': "application/json",'Cookie': jsessionid, 'X-XSRF-TOKEN': token}
-    else:
-        header = {'Content-Type': "application/json",'Cookie': jsessionid}
+    jsessionid = Auth.get_jsessionid(SDWAN_URL,443,SDWAN_USER,SDWAN_PASS)
+    token = Auth.get_token(SDWAN_URL,443,jsessionid)
+    return { "token" : token, "jsessionid" : jsessionid }
 
 # Function to get network devices
-def get_network_devices(token):
-    url = f"{DNAC_URL}/dna/intent/api/v1/device-health"
+def get_network_devices(token,jsessionid):
+    url = f"{SDWAN_URL}/dataservice/device/monitor"
     headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "X-Auth-Token": token
+        'Cookie': jsessionid,
+        'X-XSRF-TOKEN': token
     }
     
     response = requests.get(url, headers=headers,verify=False)
@@ -78,22 +71,22 @@ def get_network_devices(token):
         raise Exception(f"Failed to get network devices: {response.status_code} - {response.text}")
 
 
-@asset(key="get_data_from_catalyst_center", group_name="catalyst_center")
-def get_data_from_catalyst_center(context: AssetExecutionContext):
+@asset(key="get_data_from_vmanage", group_name="vmanage")
+def get_data_from_vmanage(context: AssetExecutionContext):
     """
-    Obtain token and get data from Catalyst Center
+    Obtain token and get data from vManage
     """
     
-    token = get_sdwan_token()
-    devices = get_network_devices(token)
+    auth = get_sdwan_token()
+    devices = get_network_devices(auth["token"],auth["jsessionid"])
 
     context.log.info(devices)
     return devices
 
 
 @asset(
-    ins={"upstream": AssetIn(key="get_data_from_catalyst_center")},
-    group_name="catalyst_center",
+    ins={"upstream": AssetIn(key="get_data_from_vmanage")},
+    group_name="vmanage",
 )
 def clean_data(context: AssetExecutionContext, upstream: List):
     """
@@ -119,14 +112,14 @@ def clean_data(context: AssetExecutionContext, upstream: List):
 
 @asset(
     ins={"second_upstream": AssetIn("clean_data")},
-    group_name="catalyst_center",
+    group_name="vmanage",
 )
 def insert_into_database(context: AssetExecutionContext, second_upstream: List):
     """
     Insert the data into the database
     """
     # Connect to SQLite database (or create it if it doesn't exist)
-    conn = sqlite3.connect('db/example.db')
+    conn = sqlite3.connect('example.db')
     cursor = conn.cursor()
 
     # Create a new SQLite table with columns id, name, and age
@@ -152,17 +145,17 @@ def insert_into_database(context: AssetExecutionContext, second_upstream: List):
 
 
 defs = Definitions(
-    assets=[get_data_from_catalyst_center, clean_data, insert_into_database],
+    assets=[get_data_from_vmanage, clean_data, insert_into_database],
     jobs=[
         define_asset_job(
-            name="hello_dagster_job",
-            selection=AssetSelection.groups("catalyst_center"),
+            name="vmanage_devicehealth_job",
+            selection=AssetSelection.groups("vmanage"),
         )
     ],
     schedules=[
         ScheduleDefinition(
-            name="hello_dagster_schedule",
-            job_name="hello_dagster_job",
+            name="vmanage_catchall_schedule",
+            job_name="vmanage_devicehealth_job",
             cron_schedule="* * * * *",
         )
     ],
